@@ -1,0 +1,220 @@
+{
+    "variables": [
+        {
+            "name": "profile",
+            "type": "categories",
+            "description": "Scroll profile",
+            "categories": [
+                "Involute",
+                "Archimedean spiral"
+            ]
+        },
+        {
+            "name": "rc",
+            "type": "float",
+            "description": "radial clearance (mm)",
+            "lb": 0.02,
+            "ub": 0.06
+        },
+        {
+            "name": "ac",
+            "type": "float",
+            "description": "axial clearance (mm)",
+            "lb": 0.01,
+            "ub": 0.05
+        },
+        {
+            "name": "n",
+            "type": "int",
+            "description": "number of scroll turns",
+            "lb": 2,
+            "ub": 5
+        },
+        {
+            "name": "t",
+            "type": "float",
+            "description": "scroll wall thickness (mm)",
+            "lb": 1.0,
+            "ub": 3.0
+        },
+        {
+            "name": "h",
+            "type": "float",
+            "description": "scroll wall height (mm)",
+            "lb": 20.0,
+            "ub": 25.0
+        },
+        {
+            "name": "r",
+            "type": "float",
+            "description": "scroll outer radius (mm)",
+            "lb": 50.0,
+            "ub": 125.0
+        },
+        {
+            "name": "G_grade",
+            "type": "categories",
+            "description": "Dynamic balance grade",
+            "categories": [
+                "G6.3",
+                "G16"
+            ]
+        },
+        {
+            "name": "material",
+            "type": "categories",
+            "description": "material type",
+            "categories": [
+                "4032-T6 Al",
+                "7075 Al"
+            ]
+        },
+        {
+            "name": "tol",
+            "type": "float",
+            "description": "profile tolerance (mm)",
+            "lb": 0.01,
+            "ub": 0.05
+        },
+        {
+            "name": "process",
+            "type": "categories",
+            "description": "forming process",
+            "categories": [
+                "close-die forging",
+                "CNC machning"
+            ]
+        },
+        {
+            "name": "batch",
+            "type": "int",
+            "description": "batch size",
+            "lb": 10,
+            "ub": 100000
+        },
+        {
+            "name": "km",
+            "type": "int",
+            "description": "process cost benchmark (considering rc)",
+            "lb": 120,
+            "ub": 210
+        }
+    ],
+    "intermediates": [
+        {
+            "name": "volume",
+            "expression": "pi*r*r*h-2*pi*r*n*t*h",
+            "description": "volume of the scroll (mm3)"
+        },
+        {
+            "name": "defect_rate",
+            "expression": "0.05 if process == 'close-die forging' else 0.15",
+            "description": "defect rate due to process"
+        },
+        {
+            "name": "density",
+            "expression": "2740 if material==\"4032-T6 Al\" else 2810",
+            "description": "material density (kg/m3)"
+        },
+        {
+            "name": "unitp",
+            "expression": "80 if material==\"4032-T6 Al\" else 90",
+            "description": "material unit price (CNY/kg)"
+        },
+        {
+            "name": "material_cost",
+            "expression": "volume*unitp*density*(1/(1-defect_rate))/1000000000",
+            "description": "material cost (CNY)"
+        },
+        {
+            "name": "equipr",
+            "expression": "80 if process == 'close-die forging' else 150",
+            "description": "equipment rate (CNY/hour)"
+        },
+        {
+            "name": "bt",
+            "expression": "0.5 if process == 'close-die forging' else 3",
+            "description": "Basic process time (hour)"
+        },
+        {
+            "name": "complexc",
+            "expression": "1+n*0.1+max(0,(2-t)/0.5)*0.05",
+            "description": "complexity coefficient"
+        },
+        {
+            "name": "tolc",
+            "expression": "1.8 if profile=='Involute'and tol<=0.02 else 1.5 if profile=='Involute'and 0.02<tol<=0.05 else 1.0 if profile=='Involute'and tol>0.05 else 1.5 if profile=='Archimedean spiral'and tol<=0.02 else 1.2 if profile=='Archimedean spiral'and 0.02<tol<=0.05 else 0.8 if profile=='Archimedean spiral'and tol>0.05 else None",
+            "description": "tolerance coefficient"
+        },
+        {
+            "name": "pt",
+            "expression": "bt*complexc*tolc",
+            "description": "processing time (hour)"
+        },
+        {
+            "name": "tool_cost",
+            "expression": "5 if process == 'close-die forging' else 20",
+            "description": "tool cost (CNY)"
+        },
+        {
+            "name": "process_cost",
+            "expression": "equipr*pt+tool_cost",
+            "description": "processing cost (CNY)"
+        },
+        {
+            "name": "molddc",
+            "expression": "200000 if process == 'close-die forging' else 0",
+            "description": "mold development cost (CNY)"
+        },
+        {
+            "name": "molddur",
+            "expression": "50000 if process == 'close-die forging' else 0",
+            "description": "mold duration (piece)"
+        },
+        {
+            "name": "mold_cost",
+            "expression": "molddc*(molddur/batch)/batch",
+            "description": "mold cost allocation (CNY)"
+        },
+        {
+            "name": "I_involute",
+            "expression": "1 if profile=='Involute' else 0",
+            "description": "noise profile coefficient"
+        },
+        {
+            "name": "I_G16",
+            "expression": "1 if G_grade =='G16' else 0",
+            "description": "dynamic balance grade coefficient"
+        },
+        {
+            "name": "machine_cost",
+            "expression": "km*(0.03/rc)**2.5",
+            "description": "machine cost considering rc"
+        },
+        {
+            "name": "dynbg",
+            "expression": "16 if G_grade=='G16' else 6.3",
+            "description": "dynamic balance grade"
+        }
+    ],
+    "objectives": [
+        {
+            "name": "cost",
+            "target": "minimize",
+            "description": "cost of the scroll (CNY)",
+            "expression": "1.15*(material_cost+process_cost+mold_cost+machine_cost)"
+        },
+        {
+            "name": "noise",
+            "target": "minimize",
+            "description": "noise of the scroll (dB)",
+            "expression": "65+3*I_involute+2*(rc-0.03)/0.01+5*I_G16"
+        },
+        {
+            "name": "vibration",
+            "target": "minimize",
+            "description": "vibration of the scroll (mm/s2)",
+            "expression": "1.2*tolc*(1+0.1*(ac-0.02)/0.01)*(dynbg/6.3)*(1+(2-t))"
+        }
+    ]
+}
